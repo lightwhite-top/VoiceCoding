@@ -1,0 +1,29 @@
+# Python
+__pycache__/
+*.py[cod]
+*.pyd
+*.log
+
+# Virtual env
+.venv/
+
+# Build artifacts
+build/
+dist/
+*.spec
+
+# Tool caches
+.ruff_cache/
+.pytest_cache/
+.mypy_cache/
+.pyright/
+.basedpyright/
+
+# Local/agent artifacts
+.sisyphus/*
+!.sisyphus/plans/
+!.sisyphus/plans/**
+
+# OS
+.DS_Store
+Thumbs.db
