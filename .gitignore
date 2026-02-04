@@ -20,10 +20,12 @@ dist/
 .basedpyright/
 
 # Local/agent artifacts
-.sisyphus/*
-!.sisyphus/plans/
-!.sisyphus/plans/**
+.sisyphus/
 
 # OS
 .DS_Store
 Thumbs.db
+
+# Docs (only keep README.md)
+*.md
+!README.md

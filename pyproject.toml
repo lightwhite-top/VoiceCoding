@@ -1,0 +1,13 @@
+[project]
+name = "voicecode"
+version = "0.1.0"
+requires-python = ">=3.13"
+dependencies = [
+    "pillow>=12.1.0",
+    "pyaudio>=0.2.14",
+    "pyinstaller>=6.18.0",
+    "pynput>=1.8.1",
+    "pystray>=0.19.5",
+    "pywinauto>=0.6.9",
+    "websocket-client>=1.9.0",
+]
