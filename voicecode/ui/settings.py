@@ -50,6 +50,10 @@ THEMES = {
 
 
 def _get_system_theme() -> str:
+    """
+    获取系统当前的主题模式（深色/浅色）。
+    依赖 darkdetect 库检测，如果检测失败默认返回 'dark'。
+    """
     try:
         import darkdetect
 
@@ -59,6 +63,14 @@ def _get_system_theme() -> str:
 
 
 def _center_window(window: ctk.CTk, width: int, height: int) -> None:
+    """
+    将窗口居中显示在屏幕上。
+
+    Args:
+        window: 窗口实例
+        width: 窗口宽度
+        height: 窗口高度
+    """
     window.update_idletasks()
     screen_width = window.winfo_screenwidth()
     screen_height = window.winfo_screenheight()
@@ -68,12 +80,21 @@ def _center_window(window: ctk.CTk, width: int, height: int) -> None:
 
 
 def _resolve_theme_mode(mode: str) -> str:
+    """
+    解析主题模式。
+    如果 mode 为 'system'，则自动获取系统主题；
+    否则返回指定的 'dark' 或 'light'，默认 fallback 到 'dark'。
+    """
     if mode == "system":
         return _get_system_theme()
     return mode if mode in {"dark", "light"} else "dark"
 
 
 def _bind_fast_scroll(scroll_frame: ctk.CTkScrollableFrame) -> None:
+    """
+    为 ScrollableFrame 绑定更灵敏的鼠标滚轮滚动事件。
+    支持 Windows 和 Linux (Button-4/5)。
+    """
     try:
         canvas = scroll_frame._parent_canvas
     except Exception:
@@ -97,7 +118,16 @@ def _bind_fast_scroll(scroll_frame: ctk.CTkScrollableFrame) -> None:
 def _apply_segmented_text_colors(
     widget: ctk.CTkSegmentedButton, theme: dict, selected_value: str
 ) -> None:
-    """设置分段按钮的文字颜色，选中态用浅色，未选中用深色"""
+    """
+    设置分段按钮的文字颜色。
+
+    Args:
+        widget: 分段按钮控件
+        theme: 当前主题配置字典
+        selected_value: 当前选中的值
+
+    选中态使用高亮色 (accent_text)，未选中态使用普通文本色。
+    """
     try:
         for btn_value, btn in widget._buttons_dict.items():
             if btn_value == selected_value:
@@ -109,6 +139,11 @@ def _apply_segmented_text_colors(
 
 
 class SettingsDialog:
+    """
+    设置对话框类。
+    负责渲染设置界面，处理用户输入，以及保存配置。
+    """
+
     def __init__(self, config: Config) -> None:
         self._config = config
         self._theme_mode = _resolve_theme_mode(config.get_theme_mode())
@@ -119,12 +154,22 @@ class SettingsDialog:
         self._theme_label_var: ctk.StringVar | None = None
 
     def _apply_theme(self, mode: str) -> None:
+        """
+        应用特定的主题模式 (dark/light)。
+        同时更新 customtkinter 的全局外观模式和颜色主题。
+        """
         self._theme_mode = _resolve_theme_mode(mode)
         self._theme = THEMES[self._theme_mode]
         ctk.set_appearance_mode("Dark" if self._theme_mode == "dark" else "Light")
         ctk.set_default_color_theme("blue")
 
     def _collect_values(self) -> dict[str, str]:
+        """
+        收集当前界面上所有输入框和控件的值。
+
+        Returns:
+            包含所有设置项键值对的字典。
+        """
         values = {
             "appid": self._config.get_xfyun_keys()[0],
             "api_secret": self._config.get_xfyun_keys()[1],
@@ -149,6 +194,10 @@ class SettingsDialog:
         return values
 
     def _on_theme_change(self, selected_label: str) -> None:
+        """
+        当用户在界面上切换主题时的回调。
+        会实时应用新主题并重新渲染界面。
+        """
         values = self._collect_values()
         values["theme_label"] = selected_label
         theme_value_by_label = {
@@ -160,6 +209,12 @@ class SettingsDialog:
         self._render(values)
 
     def _render(self, values: dict[str, str] | None = None) -> None:
+        """
+        渲染设置对话框的 UI 内容。
+
+        Args:
+            values: 可选的当前表单值，用于在重绘时恢复用户已输入的内容。
+        """
         root = self._root
         if root is None:
             return
@@ -210,7 +265,7 @@ class SettingsDialog:
             scrollbar_button_color=self._theme["border"],
             scrollbar_button_hover_color=self._theme["text_muted"],
         )
-        form_container.pack(fill="both", expand=True, padx=24, pady=(16, 0))
+        form_container.pack(fill="both", expand=True, padx=24, pady=(0, 0))
         _bind_fast_scroll(form_container)
 
         def add_section_label(text: str) -> None:
@@ -477,7 +532,17 @@ class SettingsDialog:
             command=on_save,
         ).pack(side="right")
 
+    def _cleanup(self) -> None:
+        """清理 Tkinter 变量引用，避免垃圾回收时的线程安全警告"""
+        self._send_key_var = None
+        self._theme_label_var = None
+        self._entries = {}
+        self._root = None
+
     def show(self) -> None:
+        """
+        创建并显示设置窗口，进入主事件循环。
+        """
         self._apply_theme(self._config.get_theme_mode())
         root = ctk.CTk()
         root.title("VoiceCode")
@@ -485,7 +550,14 @@ class SettingsDialog:
         self._root = root
         self._render()
         root.mainloop()
+        self._cleanup()
 
 
 def show_settings(config: Config) -> None:
+    """
+    显示设置对话框的入口函数。
+
+    Args:
+        config: 全局配置对象
+    """
     SettingsDialog(config).show()
