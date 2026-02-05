@@ -20,7 +20,7 @@ class Config:
             "xfyun_api_secret": "",
             "xfyun_api_key": "",
             "hotkey": "<ctrl>+<alt>+<space>",
-            "window_title_keyword": "OpenCode",
+            "window_title_keyword": "",
             # OpenCode Desktop 默认通常 Enter 发送；如需要可改为 ctrl+enter
             "send_key": "enter",
         }
@@ -38,9 +38,7 @@ class Config:
         self._data["xfyun_api_secret"] = self._decode(data.get("xfyun_api_secret", ""))
         self._data["xfyun_api_key"] = self._decode(data.get("xfyun_api_key", ""))
         self._data["hotkey"] = data.get("hotkey", self._data["hotkey"])
-        self._data["window_title_keyword"] = data.get(
-            "window_title_keyword", "OpenCode"
-        )
+        self._data["window_title_keyword"] = data.get("window_title_keyword", "")
         self._data["send_key"] = data.get("send_key", "enter")
 
     def save(self) -> None:
@@ -50,7 +48,7 @@ class Config:
             "xfyun_api_secret": self._encode(self._data.get("xfyun_api_secret", "")),
             "xfyun_api_key": self._encode(self._data.get("xfyun_api_key", "")),
             "hotkey": self._data.get("hotkey", "<ctrl>+<alt>+<space>"),
-            "window_title_keyword": self._data.get("window_title_keyword", "OpenCode"),
+            "window_title_keyword": self._data.get("window_title_keyword", ""),
             "send_key": self._data.get("send_key", "enter"),
         }
         self._path.write_text(json.dumps(data, indent=2), encoding="utf-8")
@@ -74,10 +72,10 @@ class Config:
         return self._data.get("hotkey", "<ctrl>+<alt>+<space>")
 
     def set_window_title_keyword(self, keyword: str) -> None:
-        self._data["window_title_keyword"] = keyword or "OpenCode"
+        self._data["window_title_keyword"] = keyword or ""
 
     def get_window_title_keyword(self) -> str:
-        return self._data.get("window_title_keyword", "OpenCode")
+        return self._data.get("window_title_keyword", "")
 
     def set_send_key(self, send_key: str) -> None:
         value = (send_key or "").strip().lower()
