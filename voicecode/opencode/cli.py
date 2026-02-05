@@ -12,15 +12,38 @@ except Exception:  # pragma: no cover
     send_keys = None
 
 
+
 class OpenCodeCLI:
+    """
+    OpenCode Desktop 客户端控制器。
+    
+    使用 pywinauto 和 UI Automation (UIA) 技术，模拟用户操作，
+    将语音识别结果发送到 OpenCode Desktop 的输入框中。
+    """
     def __init__(
         self,
         send_key: str = "enter",
     ) -> None:
+        """
+        初始化控制器。
+        
+        Args:
+            send_key: 发送消息的快捷键，支持 "enter" 或 "ctrl+enter"。
+        """
         self._send_key = (send_key or "enter").strip().lower()
         self.last_error: str = ""
 
     def send_message(self, text: str, timeout: int = 30) -> bool:
+        """
+        发送文本消息到 OpenCode Desktop。
+        
+        Args:
+            text: 要发送的文本内容
+            timeout: 操作超时时间（目前主要用于预留接口，内部暂未严格使用此 timeout）
+            
+        Returns:
+            bool: 发送成功返回 True，失败返回 False。失败原因保存在 last_error 属性中。
+        """
         message = (text or "").strip()
         if not message:
             self.last_error = "文本为空"
@@ -32,9 +55,16 @@ class OpenCodeCLI:
         return ok
 
     def _send_to_opencode_desktop_input(self, message: str) -> bool:
-        """只使用 UI Automation，不使用任何点击/坐标方案。
-
-        成功标准：识别文本出现在 OpenCode Desktop 输入框中。
+        """
+        核心逻辑：查找输入框并写入文本。
+        
+        策略：
+        1. 使用 pywinauto (UIA) 查找 OpenCode 窗口。
+        2. 遍历窗口内的所有控件 (Descendants)。
+        3. 筛选出可能是输入框的控件 (Edit/Document 类型，且位于窗口底部)。
+        4. 尝试聚焦并输入文本。
+        
+        只使用 UI Automation，不使用任何坐标点击方案，以提高稳定性。
         """
 
         self.last_error = ""
@@ -204,6 +234,10 @@ class OpenCodeCLI:
         return False
 
     def _submit_message(self) -> bool:
+        """
+        模拟按键提交消息。
+        根据配置发送 Enter 或 Ctrl+Enter。
+        """
         # 发送：默认 Enter；如 OpenCode 是多行输入可改为 ctrl+enter
         try:
             time.sleep(0.05)
@@ -227,7 +261,14 @@ class OpenCodeCLI:
 
     @staticmethod
     def debug_dump_opencode_controls(keyword: str = "OpenCode", limit: int = 20) -> str:
-        """用于诊断：列出匹配窗口的控件类型统计与 Edit 控件信息。"""
+        """
+        调试工具：打印 OpenCode 窗口的控件树信息。
+        用于开发调试，分析界面结构，寻找输入框特征。
+        
+        Args:
+            keyword: 窗口标题匹配关键字
+            limit: 打印 Edit 控件详情的最大数量
+        """
 
         if Desktop is None:
             return "pywinauto 未安装"
@@ -292,6 +333,12 @@ class OpenCodeCLI:
         return "\n".join(lines)
 
     def _find_opencode_window_uia(self):
+        """
+        查找 OpenCode Desktop 的主窗口。
+        
+        优先通过 Win32 API 查找窗口句柄 (HWND)，然后通过 pywinauto 包装为 WindowSpecification。
+        这种混合方式比纯 UIA 查找更快且更稳定。
+        """
         if Desktop is None:
             self.last_error = "未安装 pywinauto（请先 uv sync）"
             return None
@@ -323,11 +370,18 @@ class OpenCodeCLI:
 
     @staticmethod
     def _find_hwnd_candidate() -> int:
+        """
+        使用 Win32 API 遍历所有窗口，查找属于 OpenCode 进程的窗口句柄。
+        
+        Returns:
+            int: 找到的窗口句柄 (HWND)，未找到返回 0。
+        """
         user32 = ctypes.windll.user32
         kernel32 = ctypes.windll.kernel32
         matches: list[int] = []
 
         def looks_like_window(hwnd: int) -> bool:
+            """过滤掉太小的窗口（悬浮窗、隐藏窗口等）。"""
             rect = RECT()
             if not user32.GetWindowRect(hwnd, ctypes.byref(rect)):
                 return False
