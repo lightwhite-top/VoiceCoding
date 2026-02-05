@@ -143,6 +143,11 @@ class TrayIcon:
             self._on_reset()
 
     def _handle_quit(self, icon, item) -> None:
+        # 先停止托盘图标，再调用退出回调
+        try:
+            self._icon.stop()
+        except Exception:
+            pass
         if self._on_quit:
             self._on_quit()
 

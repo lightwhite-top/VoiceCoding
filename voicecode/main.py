@@ -93,7 +93,8 @@ class VoiceCodeApp:
         self._running = False
         self._stop_event.set()
         self._hotkey.stop()
-        self._tray.stop()
+        # 注意：托盘的 stop() 已在 _handle_quit 中调用，这里不再重复调用
+        # 以避免在菜单回调线程中死锁
 
     def _on_activate(self) -> None:
         with self._lock:
