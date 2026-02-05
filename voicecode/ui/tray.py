@@ -134,7 +134,9 @@ class TrayIcon:
 
     def _handle_settings(self, icon, item) -> None:
         if self._on_settings:
-            threading.Thread(target=self._on_settings, daemon=True).start()
+            # pystray 回调在其线程中执行，直接调用设置窗口
+            # customtkinter 会在当前线程创建自己的事件循环
+            self._on_settings()
 
     def _handle_reset(self, icon, item) -> None:
         if self._on_reset:

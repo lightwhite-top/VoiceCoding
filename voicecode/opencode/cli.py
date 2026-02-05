@@ -132,10 +132,13 @@ class OpenCodeCLI:
                 continue
             if rect.height() <= 0 or rect.width() <= 0:
                 continue
+            # 放宽过滤条件：只排除明显不是输入框的控件
             if win_rect is not None:
-                if rect.height() > int(win_rect.height() * 0.45):
+                # 排除占据大部分窗口高度的控件（可能是主内容区）
+                if rect.height() > int(win_rect.height() * 0.6):
                     continue
-                if rect.width() < int(win_rect.width() * 0.30):
+                # 排除太窄的控件（可能是按钮或图标）
+                if rect.width() < int(win_rect.width() * 0.15):
                     continue
             if in_bottom_area(rect):
                 bottom_candidates.append((ctrl, rect))
@@ -151,14 +154,15 @@ class OpenCodeCLI:
         other_candidates.sort(key=sort_key, reverse=True)
 
         def try_write(ctrl) -> bool:
+            # 尝试聚焦控件，但不要因为聚焦失败就放弃
             try:
                 ctrl.set_focus()
             except Exception:
-                return False
+                pass  # 继续尝试写入
 
             # Electron/DOM 输入框常见问题：set_edit_text / ValuePattern 只改了可访问性值，
             # 但不触发真正的 input 事件，导致发送按钮不可用。
-            # 因此这里优先走“模拟键盘输入”的路径。
+            # 因此这里优先走"模拟键盘输入"的路径。
             try:
                 time.sleep(0.05)
             except Exception:
@@ -194,8 +198,8 @@ class OpenCodeCLI:
                 return self._submit_message()
 
         self.last_error = (
-            "UIA 未能找到可写入的输入控件（无法 set_edit_text/ValuePattern/type_keys），"
-            f"候选控件数={total_candidates}。"
+            f"UIA 未能找到可写入的输入控件，"
+            f"总控件数={total_candidates}，底部候选={len(bottom_candidates)}，其他候选={len(other_candidates)}。"
         )
         return False
 

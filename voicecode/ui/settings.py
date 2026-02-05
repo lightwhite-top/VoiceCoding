@@ -202,7 +202,7 @@ class SettingsDialog:
             root,
             fg_color=self._theme["border"],
             height=1,
-        ).pack(fill="x", padx=32, pady=(20, 0))
+        ).pack(fill="x", padx=32, pady=(10, 0))
 
         form_container = ctk.CTkScrollableFrame(
             root,
