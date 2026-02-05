@@ -36,6 +36,7 @@ class VoiceCodeApp:
             on_settings=self._open_settings,
             on_reset=self._reset,
             on_quit=self._quit,
+            theme_mode_getter=self._config.get_theme_mode,
         )
         self._hotkey = HotkeyListener(
             hotkey=self._config.get_hotkey(),
@@ -68,7 +69,6 @@ class VoiceCodeApp:
 
     def _build_cli(self) -> OpenCodeCLI:
         return OpenCodeCLI(
-            window_title_keyword=self._config.get_window_title_keyword(),
             send_key=self._config.get_send_key(),
         )
 

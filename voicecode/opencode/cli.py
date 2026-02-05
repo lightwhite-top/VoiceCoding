@@ -15,10 +15,8 @@ except Exception:  # pragma: no cover
 class OpenCodeCLI:
     def __init__(
         self,
-        window_title_keyword: str = "OpenCode",
         send_key: str = "enter",
     ) -> None:
-        self._window_title_keyword = (window_title_keyword or "").strip()
         self._send_key = (send_key or "enter").strip().lower()
         self.last_error: str = ""
 

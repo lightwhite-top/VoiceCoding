@@ -20,9 +20,9 @@ class Config:
             "xfyun_api_secret": "",
             "xfyun_api_key": "",
             "hotkey": "<ctrl>+<alt>+<space>",
-            "window_title_keyword": "",
             # OpenCode Desktop 默认通常 Enter 发送；如需要可改为 ctrl+enter
             "send_key": "enter",
+            "theme_mode": "system",
         }
 
     def load(self) -> None:
@@ -38,8 +38,10 @@ class Config:
         self._data["xfyun_api_secret"] = self._decode(data.get("xfyun_api_secret", ""))
         self._data["xfyun_api_key"] = self._decode(data.get("xfyun_api_key", ""))
         self._data["hotkey"] = data.get("hotkey", self._data["hotkey"])
-        self._data["window_title_keyword"] = data.get("window_title_keyword", "")
         self._data["send_key"] = data.get("send_key", "enter")
+        self._data["theme_mode"] = self._normalize_theme_mode(
+            data.get("theme_mode", "system")
+        )
 
     def save(self) -> None:
         self._path.parent.mkdir(parents=True, exist_ok=True)
@@ -48,8 +50,10 @@ class Config:
             "xfyun_api_secret": self._encode(self._data.get("xfyun_api_secret", "")),
             "xfyun_api_key": self._encode(self._data.get("xfyun_api_key", "")),
             "hotkey": self._data.get("hotkey", "<ctrl>+<alt>+<space>"),
-            "window_title_keyword": self._data.get("window_title_keyword", ""),
             "send_key": self._data.get("send_key", "enter"),
+            "theme_mode": self._normalize_theme_mode(
+                self._data.get("theme_mode", "system")
+            ),
         }
         self._path.write_text(json.dumps(data, indent=2), encoding="utf-8")
 
@@ -71,12 +75,6 @@ class Config:
     def get_hotkey(self) -> str:
         return self._data.get("hotkey", "<ctrl>+<alt>+<space>")
 
-    def set_window_title_keyword(self, keyword: str) -> None:
-        self._data["window_title_keyword"] = keyword or ""
-
-    def get_window_title_keyword(self) -> str:
-        return self._data.get("window_title_keyword", "")
-
     def set_send_key(self, send_key: str) -> None:
         value = (send_key or "").strip().lower()
         if value not in {"enter", "ctrl+enter"}:
@@ -86,6 +84,12 @@ class Config:
     def get_send_key(self) -> str:
         value = (self._data.get("send_key", "enter") or "enter").strip().lower()
         return value if value in {"enter", "ctrl+enter"} else "enter"
+
+    def set_theme_mode(self, mode: str) -> None:
+        self._data["theme_mode"] = self._normalize_theme_mode(mode)
+
+    def get_theme_mode(self) -> str:
+        return self._normalize_theme_mode(self._data.get("theme_mode", "system"))
 
     def is_xfyun_configured(self) -> bool:
         appid, api_secret, api_key = self.get_xfyun_keys()
@@ -105,3 +109,8 @@ class Config:
             return base64.b64decode(value.encode("ascii")).decode("utf-8")
         except Exception:
             return ""
+
+    @staticmethod
+    def _normalize_theme_mode(value: str) -> str:
+        mode = (value or "system").strip().lower()
+        return mode if mode in {"system", "dark", "light"} else "system"
