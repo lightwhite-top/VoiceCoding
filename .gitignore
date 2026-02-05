@@ -21,6 +21,7 @@ dist/
 
 # Local/agent artifacts
 .sisyphus/
+.opencode/
 
 # OS
 .DS_Store
