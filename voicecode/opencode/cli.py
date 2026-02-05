@@ -18,7 +18,7 @@ class OpenCodeCLI:
         window_title_keyword: str = "OpenCode",
         send_key: str = "enter",
     ) -> None:
-        self._window_title_keyword = window_title_keyword or "OpenCode"
+        self._window_title_keyword = (window_title_keyword or "").strip()
         self._send_key = (send_key or "enter").strip().lower()
         self.last_error: str = ""
 
@@ -294,15 +294,12 @@ class OpenCodeCLI:
             self.last_error = "未安装 pywinauto（请先 uv sync）"
             return None
 
-        keyword = self._window_title_keyword
-        title_re = re.compile(r".*" + re.escape(keyword) + r".*", re.IGNORECASE)
-
         deadline = time.monotonic() + 6.0
         last_hwnd = 0
 
         while time.monotonic() < deadline:
             # 1) Prefer: find HWND via Win32, then bind via UIA by handle
-            hwnd = self._find_hwnd_candidate(keyword)
+            hwnd = self._find_hwnd_candidate()
             if hwnd:
                 last_hwnd = hwnd
                 try:
@@ -314,70 +311,19 @@ class OpenCodeCLI:
                     # keep retrying
                     pass
 
-            # 2) Fallback: UIA title match (may have multiple matches)
-            try:
-                desktop = Desktop(backend="uia")
-                wins = desktop.windows(title_re=title_re)
-                if wins:
-                    # Prefer a visible, large Window
-                    best = None
-                    best_score = -1
-                    for w in wins:
-                        try:
-                            ct = w.element_info.control_type
-                        except Exception:
-                            ct = ""
-                        try:
-                            rect = w.rectangle()
-                            area = max(0, rect.width()) * max(0, rect.height())
-                            on_screen = rect.right > 0 and rect.bottom > 0
-                        except Exception:
-                            area = 0
-                            on_screen = False
-                        try:
-                            visible = w.is_visible()
-                        except Exception:
-                            visible = False
-
-                        score = 0
-                        if ct == "Window":
-                            score += 1_000_000
-                        if visible:
-                            score += 100_000
-                        if on_screen:
-                            score += 10_000
-                        score += area
-
-                        if score > best_score:
-                            best_score = score
-                            best = w
-
-                    if best is not None:
-                        return best
-            except Exception:
-                pass
-
             time.sleep(0.2)
 
         if last_hwnd:
             self.last_error = "找到了窗口句柄但 UIA 无法访问（可能权限不一致）。请尝试以管理员身份启动 VoiceCode。"
         else:
-            self.last_error = f"未找到窗口（标题包含：{keyword}）。请确认 OpenCode Desktop 已打开，或调整窗口标题关键字。"
+            self.last_error = "未找到 OpenCode 窗口。请确认 OpenCode Desktop 已打开。"
         return None
 
     @staticmethod
-    def _find_hwnd_candidate(keyword: str) -> int:
+    def _find_hwnd_candidate() -> int:
         user32 = ctypes.windll.user32
         kernel32 = ctypes.windll.kernel32
         matches: list[int] = []
-
-        def get_title(hwnd: int) -> str:
-            length = user32.GetWindowTextLengthW(hwnd)
-            if length <= 0:
-                return ""
-            buf = ctypes.create_unicode_buffer(length + 1)
-            user32.GetWindowTextW(hwnd, buf, length + 1)
-            return buf.value
 
         def looks_like_window(hwnd: int) -> bool:
             rect = RECT()
@@ -420,11 +366,6 @@ class OpenCodeCLI:
                     return True
                 if not looks_like_window(hwnd):
                     return True
-
-                title = get_title(hwnd)
-                if title and keyword.lower() in title.lower():
-                    matches.append(hwnd)
-                    return False
 
                 proc_image = get_process_image(hwnd)
                 if looks_like_opencode_process(proc_image):
